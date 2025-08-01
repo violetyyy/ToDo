@@ -1,70 +1,42 @@
-const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { PrismaClient } = require('@prisma/client');
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
 const prisma = new PrismaClient();
 const app = express();
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-// 🧪 Test route
-app.get("/", (req, res) => {
-  res.send("API is running 🚀");
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ message: 'Personal Task Manager API is running 🚀' });
 });
 
-// 👤 Create a user
-app.post("/users", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await prisma.user.create({
-      data: { email, password },
-    });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api', taskRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// 📁 Create a project under a user
-app.post("/projects", async (req, res) => {
-  const { name, userId } = req.body;
-  try {
-    const project = await prisma.project.create({
-      data: {
-        name,
-        user: { connect: { id: userId } },
-      },
-    });
-    res.json(project);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
-// ✅ Create a task under a project
-app.post("/tasks", async (req, res) => {
-  const { title, projectId } = req.body;
-  try {
-    const task = await prisma.task.create({
-      data: {
-        title,
-        project: { connect: { id: projectId } },
-      },
-    });
-    res.json(task);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+const PORT = process.env.PORT || 3001;
 
-// 📃 Get all tasks by project
-app.get("/projects/:id/tasks", async (req, res) => {
-  const projectId = parseInt(req.params.id);
-  const tasks = await prisma.task.findMany({
-    where: { projectId },
-  });
-  res.json(tasks);
-});
-
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
