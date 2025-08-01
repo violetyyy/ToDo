@@ -1,11 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
-
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const taskRoutes = require('./routes/taskRoutes');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 const app = express();
@@ -14,29 +10,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check route
-app.get('/', (req, res) => {
-  res.json({ message: 'Personal Task Manager API is running 🚀' });
-});
-
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api', taskRoutes);
+try {
+  const authRoutes = require("./routes/authRoutes");
+  app.use("/api/auth", authRoutes);
+} catch (e) {
+  console.error("❌ authRoutes error:", e.message);
+}
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+try {
+  const taskRoutes = require("./routes/taskRoutes");
+  app.use("/api", taskRoutes);
+} catch (e) {
+  console.error("❌ taskRoutes error:", e.message);
+}
+
+// Health check
+app.get("/", (req, res) => {
+  res.json({ message: "✅ Personal Task Manager API is running 🚀" });
 });
 
 // 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+// app.use("/*", (req, res) => {
+//   res.status(404).json({ error: "❌ Route not found" });
+// });
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error("💥 Unhandled Error:", err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
 });
 
+// Start server
 const PORT = process.env.PORT || 3001;
-
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
 });
